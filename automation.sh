@@ -77,3 +77,37 @@ mv /var/log/apache2/$myname-httpd-logs-$timestamp.tar /tmp
 echo "copy log file tar from temp to s3 bucket"
 echo
 aws s3 cp /tmp/$myname-httpd-logs-$timestamp.tar s3://$s3BucketName/$myname-httpd-logs-$timestamp.tar
+echo
+echo "Check if inventory.html exists.."
+invFile=/var/www/html/inventory.html
+echo
+if test -f $invFile; then
+	echo "$invFile exists,skipping creation step"
+else
+	echo "inventory file doesnt exist,creating one"
+	touch $invFile
+	echo -e "LogType &emsp; &nbsp; TimeCreated &emsp; &emsp; Type &emsp; Size \n" > $invFile
+	echo "<br>" >> $invFile
+fi
+
+LogType="httpd-logs"
+TimeCreated=$timestamp
+Type="tar"
+Size=`du -k /tmp/$myname-httpd-logs-$timestamp.tar | cut -f1`
+
+echo "<br>" >> $invFile
+echo -e "$LogType &emsp; $TimeCreated &emsp; $Type &emsp; $Size KB"  >> $invFile
+
+echo "Check if a job is scheduled or not..."
+echo
+cronJobFile=/etc/cron.d/automation
+
+if test -f $cronJobFile; then
+	echo "$cronJobFile exists,skipping creation step"
+	echo
+else
+	echo "$cronJobFile does not exist,creating one"
+	touch /etc/cron.d/automation
+	echo "0 9 * * * root /root/Automation_Project/automation.sh" >> $cronJobFile
+	echo
+fi
